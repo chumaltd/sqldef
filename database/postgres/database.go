@@ -113,7 +113,7 @@ func (d *PostgresDatabase) tableNames() ([]string, error) {
 		and c.relkind in ('r', 'p')
 		and c.relpersistence in ('p', 'u')
 		and c.relispartition = false
-		and not exists (select * from pg_catalog.pg_depend d where c.oid = d.objid and d.deptype = 'e')
+		AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_depend d WHERE c.oid = d.objid AND d.classid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'pg_class') AND d.deptype = 'e')
 		order by relname asc;
 	`)
 	if err != nil {
@@ -150,7 +150,7 @@ func (d *PostgresDatabase) views() ([]string, error) {
 		from pg_catalog.pg_class c inner join pg_catalog.pg_namespace n on c.relnamespace = n.oid
 		where n.nspname not in ('information_schema', 'pg_catalog')
 		and c.relkind = 'v'
-		and not exists (select * from pg_catalog.pg_depend d where c.oid = d.objid and d.deptype = 'e')
+		and not exists (select 1 from pg_catalog.pg_depend d where c.oid = d.objid and d.classid = (select oid from pg_catalog.pg_class where relname = 'pg_class') and d.deptype = 'e')
 	`)
 	if err != nil {
 		return nil, err
@@ -190,7 +190,7 @@ func (d *PostgresDatabase) materializedViews() ([]string, error) {
 		select n.nspname as schemaname, c.relname as matviewname, pg_get_viewdef(c.oid) as definition
 		from pg_catalog.pg_class c inner join pg_catalog.pg_namespace n on c.relnamespace = n.oid
 		where c.relkind = 'm'
-		and not exists (select * from pg_catalog.pg_depend d where c.oid = d.objid and d.deptype = 'e')
+		and not exists (select 1 from pg_catalog.pg_depend d where c.oid = d.objid and d.classid = (select oid from pg_catalog.pg_class where relname = 'pg_class') and d.deptype = 'e')
 	`)
 	if err != nil {
 		return nil, err
@@ -291,7 +291,7 @@ func (d *PostgresDatabase) types() ([]string, error) {
 		from pg_enum e
 		join pg_type t on e.enumtypid = t.oid
 		inner join pg_catalog.pg_namespace n on t.typnamespace = n.oid
-		where not exists (select * from pg_depend d where d.objid = t.oid and d.deptype = 'e')
+		WHERE NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = t.oid AND d.classid = (SELECT oid FROM pg_catalog.pg_class WHERE relname = 'pg_type') AND d.deptype = 'e')
 		group by n.nspname, t.typname;
 	`)
 	if err != nil {
